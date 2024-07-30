@@ -97,7 +97,7 @@ const getId = async (
   : Promise<number> => {
   const idCheck = getFileName(fileName);
   if (idCheck.includes('tmdb-')) {
-    const tmdbId = fileName.match("(?<=[{tmdb-])\d*(?=[}])?.at(0)") ?? '';
+    const tmdbId = fileName.match('(?<=[{tmdb-])\\d*(?=[}])?.at(0)') ?? '';
     var id = (tmdbId !== '')
       ? Number((await args.deps.axios({
         method: 'get',
