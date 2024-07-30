@@ -125,19 +125,35 @@ const getFileInfoFromLookup = async (
   fileName: string,
 )
   : Promise<IFileInfo> => {
+  const idCheck = getFileName(fileName);
   let fInfo: IFileInfo = { id: '-1' };
-  const tmdbId = getFileName(fileName).match(/{tmdb-(.*?)}/i)?.at(0) ?? '';
-  if (tmdbId !== '') {
-    const lookupResponse: ILookupResponse = await args.deps.axios({
-      method: 'get',
-      url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`,
-      headers: arrApp.headers,
-    });
-    fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
-    args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
-      + ` for tmdb '${tmdbId}'`);
-  }
+  if (idCheck.includes('tmdb-')) {
+    const tmdbId = getFileName(fileName).match("(?<=[{tmdb-])\d*(?=[}])?.at(0)") ?? '';
+    if (tmdbId !== '') {
+      const lookupResponse: ILookupResponse = await args.deps.axios({
+        method: 'get',
+        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`,
+        headers: arrApp.headers,
+      });
+      fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
+      args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
+        + ` for tmdb '${tmdbId}'`);
+    }
   return fInfo;
+  } else {
+    const imdbId = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)?.at(0) ?? '';
+    if (imdbId !== '') {
+      const lookupResponse: ILookupResponse = await args.deps.axios({
+        method: 'get',
+        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=imdb:${imdbId}`,
+        headers: arrApp.headers,
+      });
+      fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
+      args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
+        + ` for imdb '${imdbId}'`);
+    }
+  return fInfo;
+  }
 };
 
 const getFileInfoFromParse = async (

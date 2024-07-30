@@ -95,34 +95,47 @@ const getId = async (
   fileName: string,
 )
   : Promise<number> => {
-  const tmdbId = getFileName(fileName).match(/{tmdb-(.*?)}/i)?.at(0) ?? '';
-  let id = (tmdbId !== '')
-    ? Number((await args.deps.axios({
-      method: 'get',
-      url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`,
-      headers: arrApp.headers,
-    })).data?.at(0)?.id ?? -1)
-    : -1;
-  args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for tmdb '${tmdbId}'`);
+  const idCheck = getFileName(fileName);
+  if (idCheck.includes('tmdb-')) {
+    const tmdbId = fileName.match("(?<=[{tmdb-])\d*(?=[}])?.at(0)") ?? '';
+    var id = (tmdbId !== '')
+      ? Number((await args.deps.axios({
+        method: 'get',
+        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`,
+        headers: arrApp.headers,
+      })).data?.at(0)?.id ?? -1)
+      : -1;
+    args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for tmdb '${tmdbId}'`);
+  } else {
+    const imdbId = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)?.at(0) ?? '';
+    var id = (imdbId !== '')
+      ? Number((await args.deps.axios({
+        method: 'get',
+        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=imdb:${imdbId}`,
+        headers: arrApp.headers,
+      })).data?.at(0)?.id ?? -1)
+      : -1;
+    args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for imdb '${imdbId}'`);
+  }
   if (id === -1) {
-    const TheTitle = getFileName(fileName);
-    if (TheTitle.includes(', The')) {
-      // Found TitleThe
-      const TitleThe = TheTitle.split(',')[0];
-      const The = 'The';
-      const TheTitle2 = The.concat(' ', TitleThe);
-      args.jobLog(`Variable TheTitle = ${TheTitle2}`);
+    const theTitle = getFileName(fileName);
+    if (theTitle.includes(', The')) {
+      // Found titleThe
+      const titleThe = theTitle.split(',')[0];
+      const the = 'The';
+      const theTitle2 = the.concat(' ', titleThe);
+      args.jobLog(`Variable theTitle = ${theTitle2}`);
     } else {
-      args.jobLog(`Variable TheTitle = ${TheTitle}`);
+      args.jobLog(`Variable theTitle = ${theTitle}`);
     }
     id = arrApp.delegates.getIdFromParseResponse(
       (await args.deps.axios({
         method: 'get',
-        url: `${arrApp.host}/api/v3/parse?title=${encodeURIComponent(TheTitle)}`,
+        url: `${arrApp.host}/api/v3/parse?title=${encodeURIComponent(theTitle)}`,
         headers: arrApp.headers,
       })),
     );
-    args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for '${TheTitle}'`);
+    args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for '${theTitle}'`);
   }
   return id;
 };
