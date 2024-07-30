@@ -128,7 +128,7 @@ const getFileInfoFromLookup = async (
   const idCheck = getFileName(fileName);
   let fInfo: IFileInfo = { id: '-1' };
   if (idCheck.includes('tmdb-')) {
-    const tmdbId = getFileName(fileName).match('(?<=[{tmdb-])\\d*(?=[}])?.at(0)') ?? '';
+    const tmdbId = getFileName(fileName).match('(?<=[{tmdb-])d*(?=[}])?.at(0)') ?? '';
     if (tmdbId !== '') {
       const lookupResponse: ILookupResponse = await args.deps.axios({
         method: 'get',
