@@ -96,22 +96,42 @@ const getId = async (
 )
   : Promise<number> => {
   const idCheck = getFileName(fileName);
+  let id = -1;
   if (idCheck.includes('tmdb-')) {
-    const tmdbId = fileName.match('(?<=[{tmdb-])d*(?=[}])?.at(0)') ?? '';
-    var id = (tmdbId !== '')
+    const tmdbId = fileName.match(/\{tmdb-(\d+)}/)?.at(1) ?? '';
+    args.jobLog(`${idCheck} includes tmdb- '${tmdbId}'`);
+    const urlTmdb = `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`;
+    args.jobLog(`Request URL: ${urlTmdb}`);
+    id = (tmdbId !== '')
       ? Number((await args.deps.axios({
         method: 'get',
-        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`,
+        url: urlTmdb,
         headers: arrApp.headers,
       })).data?.at(0)?.id ?? -1)
       : -1;
     args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for tmdb '${tmdbId}'`);
-  } else {
-    const imdbId = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)?.at(0) ?? '';
-    var id = (imdbId !== '')
+  } else if (idCheck.includes('tvdb-')) {
+    const tvdbId = fileName.match(/\{tvdb-(\d+)}/)?.at(1) ?? '';
+    args.jobLog(`${idCheck} includes tvdb- '${tvdbId}'`);
+    const urlTvdb = `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tvdb:${tvdbId}`;
+    args.jobLog(`Request URL: ${urlTvdb}`);
+    id = (tvdbId !== '')
       ? Number((await args.deps.axios({
         method: 'get',
-        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=imdb:${imdbId}`,
+        url: urlTvdb,
+        headers: arrApp.headers,
+      })).data?.at(0)?.id ?? -1)
+      : -1;
+    args.jobLog(`${arrApp.content} ${id !== -1 ? `'${id}' found` : 'not found'} for tvdb '${tvdbId}'`);
+  } else {
+    const imdbId = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)?.at(0) ?? '';
+    args.jobLog(`${idCheck} includes imdb = '${imdbId}'`);
+    const urlImdb = `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=imdb:${imdbId}`;
+    args.jobLog(`Request URL: ${urlImdb}`);
+    id = (imdbId !== '')
+      ? Number((await args.deps.axios({
+        method: 'get',
+        url: urlImdb,
         headers: arrApp.headers,
       })).data?.at(0)?.id ?? -1)
       : -1;
@@ -128,10 +148,12 @@ const getId = async (
     } else {
       args.jobLog(`Variable theTitle = ${theTitle}`);
     }
+    const urlParse = `${arrApp.host}/api/v3/parse?title=${encodeURIComponent(theTitle)}`;
+    args.jobLog(`Request URL: ${urlParse}`);
     id = arrApp.delegates.getIdFromParseResponse(
       (await args.deps.axios({
         method: 'get',
-        url: `${arrApp.host}/api/v3/parse?title=${encodeURIComponent(theTitle)}`,
+        url: urlParse,
         headers: arrApp.headers,
       })),
     );

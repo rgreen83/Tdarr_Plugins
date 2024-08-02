@@ -101,50 +101,105 @@ var details = function () { return ({
 }); };
 exports.details = details;
 var getId = function (args, arrApp, fileName) { return __awaiter(void 0, void 0, void 0, function () {
-    var tmdbId, id, _a, _b, TheTitle, TitleThe, The, TheTitle2, _c, _d;
-    var _e, _f, _g, _h, _j;
-    return __generator(this, function (_k) {
-        switch (_k.label) {
+    var idCheck, id, tmdbId, urlTmdb, _a, _b, tvdbId, urlTvdb, _c, _d, imdbId, urlImdb, _e, _f, theTitle, titleThe, the, theTitle2, urlParse, _g, _h;
+    var _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x, _y;
+    return __generator(this, function (_z) {
+        switch (_z.label) {
             case 0:
-                tmdbId = (_f = (_e = (0, fileUtils_1.getFileName)(fileName).match(/{tmdb-(.*?)}/i)) === null || _e === void 0 ? void 0 : _e.at(0)) !== null && _f !== void 0 ? _f : '';
+                idCheck = (0, fileUtils_1.getFileName)(fileName);
+                id = -1;
+                if (!idCheck.includes('tmdb-')) return [3 /*break*/, 4];
+                tmdbId = (_k = (_j = fileName.match(/\{tmdb-(\d+)}/)) === null || _j === void 0 ? void 0 : _j.at(1)) !== null && _k !== void 0 ? _k : '';
+                args.jobLog("".concat(idCheck, " includes tmdb- '").concat(tmdbId, "'"));
+                urlTmdb = "".concat(arrApp.host, "/api/v3/").concat(arrApp.name === 'radarr' ? 'movie' : 'series', "/lookup?term=tmdb:").concat(tmdbId);
+                args.jobLog("Request URL: ".concat(urlTmdb));
                 if (!(tmdbId !== '')) return [3 /*break*/, 2];
                 _b = Number;
                 return [4 /*yield*/, args.deps.axios({
                         method: 'get',
-                        url: "".concat(arrApp.host, "/api/v3/").concat(arrApp.name === 'radarr' ? 'movie' : 'series', "/lookup?term=tmdb:").concat(tmdbId),
+                        url: urlTmdb,
                         headers: arrApp.headers,
                     })];
             case 1:
-                _a = _b.apply(void 0, [(_j = (_h = (_g = (_k.sent()).data) === null || _g === void 0 ? void 0 : _g.at(0)) === null || _h === void 0 ? void 0 : _h.id) !== null && _j !== void 0 ? _j : -1]);
+                _a = _b.apply(void 0, [(_o = (_m = (_l = (_z.sent()).data) === null || _l === void 0 ? void 0 : _l.at(0)) === null || _m === void 0 ? void 0 : _m.id) !== null && _o !== void 0 ? _o : -1]);
                 return [3 /*break*/, 3];
             case 2:
                 _a = -1;
-                _k.label = 3;
+                _z.label = 3;
             case 3:
                 id = _a;
                 args.jobLog("".concat(arrApp.content, " ").concat(id !== -1 ? "'".concat(id, "' found") : 'not found', " for tmdb '").concat(tmdbId, "'"));
-                if (!(id === -1)) return [3 /*break*/, 5];
-                TheTitle = (0, fileUtils_1.getFileName)(fileName);
-                if (TheTitle.includes(', The')) {
-                    TitleThe = TheTitle.split(',')[0];
-                    The = 'The';
-                    TheTitle2 = The.concat(' ', TitleThe);
-                    args.jobLog("Variable TheTitle = ".concat(TheTitle2));
-                }
-                else {
-                    args.jobLog("Variable TheTitle = ".concat(TheTitle));
-                }
-                _d = (_c = arrApp.delegates).getIdFromParseResponse;
+                return [3 /*break*/, 12];
+            case 4:
+                if (!idCheck.includes('tvdb-')) return [3 /*break*/, 8];
+                tvdbId = (_q = (_p = fileName.match(/\{tvdb-(\d+)}/)) === null || _p === void 0 ? void 0 : _p.at(1)) !== null && _q !== void 0 ? _q : '';
+                args.jobLog("".concat(idCheck, " includes tvdb- '").concat(tvdbId, "'"));
+                urlTvdb = "".concat(arrApp.host, "/api/v3/").concat(arrApp.name === 'radarr' ? 'movie' : 'series', "/lookup?term=tvdb:").concat(tvdbId);
+                args.jobLog("Request URL: ".concat(urlTvdb));
+                if (!(tvdbId !== '')) return [3 /*break*/, 6];
+                _d = Number;
                 return [4 /*yield*/, args.deps.axios({
                         method: 'get',
-                        url: "".concat(arrApp.host, "/api/v3/parse?title=").concat(encodeURIComponent(TheTitle)),
+                        url: urlTvdb,
                         headers: arrApp.headers,
                     })];
-            case 4:
-                id = _d.apply(_c, [(_k.sent())]);
-                args.jobLog("".concat(arrApp.content, " ").concat(id !== -1 ? "'".concat(id, "' found") : 'not found', " for '").concat(TheTitle, "'"));
-                _k.label = 5;
-            case 5: return [2 /*return*/, id];
+            case 5:
+                _c = _d.apply(void 0, [(_t = (_s = (_r = (_z.sent()).data) === null || _r === void 0 ? void 0 : _r.at(0)) === null || _s === void 0 ? void 0 : _s.id) !== null && _t !== void 0 ? _t : -1]);
+                return [3 /*break*/, 7];
+            case 6:
+                _c = -1;
+                _z.label = 7;
+            case 7:
+                id = _c;
+                args.jobLog("".concat(arrApp.content, " ").concat(id !== -1 ? "'".concat(id, "' found") : 'not found', " for tvdb '").concat(tvdbId, "'"));
+                return [3 /*break*/, 12];
+            case 8:
+                imdbId = (_v = (_u = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)) === null || _u === void 0 ? void 0 : _u.at(0)) !== null && _v !== void 0 ? _v : '';
+                args.jobLog("".concat(idCheck, " includes imdb = '").concat(imdbId, "'"));
+                urlImdb = "".concat(arrApp.host, "/api/v3/").concat(arrApp.name === 'radarr' ? 'movie' : 'series', "/lookup?term=imdb:").concat(imdbId);
+                args.jobLog("Request URL: ".concat(urlImdb));
+                if (!(imdbId !== '')) return [3 /*break*/, 10];
+                _f = Number;
+                return [4 /*yield*/, args.deps.axios({
+                        method: 'get',
+                        url: urlImdb,
+                        headers: arrApp.headers,
+                    })];
+            case 9:
+                _e = _f.apply(void 0, [(_y = (_x = (_w = (_z.sent()).data) === null || _w === void 0 ? void 0 : _w.at(0)) === null || _x === void 0 ? void 0 : _x.id) !== null && _y !== void 0 ? _y : -1]);
+                return [3 /*break*/, 11];
+            case 10:
+                _e = -1;
+                _z.label = 11;
+            case 11:
+                id = _e;
+                args.jobLog("".concat(arrApp.content, " ").concat(id !== -1 ? "'".concat(id, "' found") : 'not found', " for imdb '").concat(imdbId, "'"));
+                _z.label = 12;
+            case 12:
+                if (!(id === -1)) return [3 /*break*/, 14];
+                theTitle = (0, fileUtils_1.getFileName)(fileName);
+                if (theTitle.includes(', The')) {
+                    titleThe = theTitle.split(',')[0];
+                    the = 'The';
+                    theTitle2 = the.concat(' ', titleThe);
+                    args.jobLog("Variable theTitle = ".concat(theTitle2));
+                }
+                else {
+                    args.jobLog("Variable theTitle = ".concat(theTitle));
+                }
+                urlParse = "".concat(arrApp.host, "/api/v3/parse?title=").concat(encodeURIComponent(theTitle));
+                args.jobLog("Request URL: ".concat(urlParse));
+                _h = (_g = arrApp.delegates).getIdFromParseResponse;
+                return [4 /*yield*/, args.deps.axios({
+                        method: 'get',
+                        url: urlParse,
+                        headers: arrApp.headers,
+                    })];
+            case 13:
+                id = _h.apply(_g, [(_z.sent())]);
+                args.jobLog("".concat(arrApp.content, " ").concat(id !== -1 ? "'".concat(id, "' found") : 'not found', " for '").concat(theTitle, "'"));
+                _z.label = 14;
+            case 14: return [2 /*return*/, id];
         }
     });
 }); };

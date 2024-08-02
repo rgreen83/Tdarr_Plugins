@@ -119,7 +119,7 @@ interface IArrApp {
   }
 }
 
-const getFileInfoFromLookup = async (
+const getId = async (
   args: IpluginInputArgs,
   arrApp: IArrApp,
   fileName: string,
@@ -128,48 +128,73 @@ const getFileInfoFromLookup = async (
   const idCheck = getFileName(fileName);
   let fInfo: IFileInfo = { id: '-1' };
   if (idCheck.includes('tmdb-')) {
-    const tmdbId = getFileName(fileName).match('(?<=[{tmdb-])d*(?=[}])?.at(0)') ?? '';
+    const tmdbId = fileName.match(/\{tmdb-(\d+)}/)?.at(1) ?? '';
+    args.jobLog(`${idCheck} includes tmdb- '${tmdbId}'`);
+    const urlTmdb = `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`;
+    args.jobLog(`Request URL: ${urlTmdb}`);
     if (tmdbId !== '') {
       const lookupResponse: ILookupResponse = await args.deps.axios({
         method: 'get',
-        url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tmdb:${tmdbId}`,
+        url: urlTmdb,
         headers: arrApp.headers,
       });
       fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
       args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
         + ` for tmdb '${tmdbId}'`);
     }
-    return fInfo;
-  }
-  const imdbId = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)?.at(0) ?? '';
-  if (imdbId !== '') {
-    const lookupResponse: ILookupResponse = await args.deps.axios({
-      method: 'get',
-      url: `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=imdb:${imdbId}`,
-      headers: arrApp.headers,
-    });
-    fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
-    args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
+  } else if (idCheck.includes('tmdb-')) {
+    const tvdbId = fileName.match(/\{tvdb-(\d+)}/)?.at(1) ?? '';
+    args.jobLog(`${idCheck} includes tvdb- '${tvdbId}'`);
+    const urlTvdb = `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=tvdb:${tvdbId}`;
+    args.jobLog(`Request URL: ${urlTvdb}`);
+    if (tvdbId !== '') {
+      const lookupResponse: ILookupResponse = await args.deps.axios({
+        method: 'get',
+        url: urlTvdb,
+        headers: arrApp.headers,
+      });
+      fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
+      args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
+        + ` for tvdb '${tvdbId}'`);
+    }
+  } else {
+    const imdbId = /\b(tt|nm|co|ev|ch|ni)\d{7,10}?\b/i.exec(fileName)?.at(0) ?? '';
+    args.jobLog(`${idCheck} includes imdb = '${imdbId}'`);
+    const urlImdb = `${arrApp.host}/api/v3/${arrApp.name === 'radarr' ? 'movie' : 'series'}/lookup?term=imdb:${imdbId}`;
+    args.jobLog(`Request URL: ${urlImdb}`);
+    if (imdbId !== '') {
+      const lookupResponse: ILookupResponse = await args.deps.axios({
+        method: 'get',
+        url: urlImdb,
+        headers: arrApp.headers,
+      });
+      fInfo = arrApp.delegates.getFileInfoFromLookupResponse(lookupResponse, fileName);
+      args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
         + ` for imdb '${imdbId}'`);
+    }
   }
-  return fInfo;
-};
-
-const getFileInfoFromParse = async (
-  args: IpluginInputArgs,
-  arrApp: IArrApp,
-  fileName: string,
-)
-  : Promise<IFileInfo> => {
-  let fInfo: IFileInfo = { id: '-1' };
-  const parseResponse: IParseResponse = await args.deps.axios({
-    method: 'get',
-    url: `${arrApp.host}/api/v3/parse?title=${encodeURIComponent(getFileName(fileName))}`,
-    headers: arrApp.headers,
-  });
-  fInfo = arrApp.delegates.getFileInfoFromParseResponse(parseResponse);
-  args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'}`
-    + ` for '${getFileName(fileName)}'`);
+  if (fInfo.id === '-1') {
+    const theTitle = getFileName(fileName);
+    if (theTitle.includes(', The')) {
+      // Found titleThe
+      const titleThe = theTitle.split(',')[0];
+      const the = 'The';
+      const theTitle2 = the.concat(' ', titleThe);
+      args.jobLog(`Variable theTitle = ${theTitle2}`);
+    } else {
+      args.jobLog(`Variable theTitle = ${theTitle}`);
+    }
+    const urlParse = `${arrApp.host}/api/v3/parse?title=${encodeURIComponent(theTitle)}`;
+    args.jobLog(`Request URL: ${urlParse}`);
+    fInfo = arrApp.delegates.getFileInfoFromParseResponse(
+      (await args.deps.axios({
+        method: 'get',
+        url: urlParse,
+        headers: arrApp.headers,
+      })),
+    );
+    args.jobLog(`${arrApp.content} ${fInfo.id !== '-1' ? `'${fInfo.id}' found` : 'not found'} for '${theTitle}'`);
+  }
   return fInfo;
 };
 
@@ -179,9 +204,9 @@ const getFileInfo = async (
   fileName: string,
 )
   : Promise<IFileInfo> => {
-  const fInfo = await getFileInfoFromLookup(args, arrApp, fileName);
+  const fInfo = await getId(args, arrApp, fileName);
   return (fInfo.id === '-1' || (arrApp.name === 'sonarr' && (fInfo.seasonNumber === -1 || fInfo.episodeNumber === -1)))
-    ? getFileInfoFromParse(args, arrApp, fileName)
+    ? getId(args, arrApp, fileName)
     : fInfo;
 };
 
